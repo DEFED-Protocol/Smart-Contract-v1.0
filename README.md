@@ -13,5 +13,6 @@ cp .env_example .env
 add config params
 ### step
 1. npm install 
-2. npx hardhat run scripts/deploy_lendingPool.js --network mumbai
-3. npx hardhat run scripts/deploy.js --network mumbai
+2. npx hardhat run scripts/deploy_eth.js --network rinkeby
+
+2. npx hardhat run scripts/deploy_polygon.js --network mumbai

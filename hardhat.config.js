@@ -43,6 +43,10 @@ module.exports = {
       url: process.env.MUMBAI_RPC,
       accounts: [process.env.PK || '']
     },
+    rinkeby: {
+      url: process.env.RINKEBY_RPC,
+      accounts: [process.env.PK || '']
+    },
   },
   solidity: {
     compilers: [

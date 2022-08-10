@@ -15,7 +15,7 @@ async function main() {
   const defeToken = "0x3bC22170Cdf8d3B270F9eAbDDbC626b0d7DF6dAF";
   const feeVault = "0x103BBc3965669abFD9061B3D464A0B92fa1c526E";
   //const lendingPoolAddress = "0x51cA8452cE5C7a03D8427499488f2c4E35e4feC9";
-  const priceOracle = "0x8Cf5b0D7fbB89204dA42F1943359b824E5AAA683";
+  const fallbackOracle = "0x0000000000000000000000000000000000000000";
   const maticETH = "0xF7CEacF2Fd740916925b424393477e6BEc7F183A";
 
 
@@ -67,6 +67,11 @@ async function main() {
   console.log("lendingPool       deployed to: ", lendingPool.address);
   const lendingPoolAddress = lendingPool.address;
 
+
+  const PriceOracle = await hre.ethers.getContractFactory("ChainlinkProxyPriceProvider");
+  const priceOracle = await(await PriceOracle.deploy(fallbackOracle)).deployed();
+  console.log("priceOracle      deployed to: ", priceOracle.address)
+
   const LendingPoolAddressesProviderRegistry = await hre.ethers.getContractFactory("LendingPoolAddressesProviderRegistry");
   const lendingPoolAddressesProviderRegistry = await(await LendingPoolAddressesProviderRegistry.deploy()).deployed();
   json.lendingPoolAddressesProviderRegistry = lendingPoolAddressesProviderRegistry.address
@@ -102,7 +107,7 @@ async function main() {
   await lendingPoolAddressesProvider.setLendingPoolImpl(lendingPoolAddress);
   await lendingPoolAddressesProvider.setLendingPoolConfiguratorImpl(lendingPoolConfigurator.address);
   await lendingPoolAddressesProvider.setLendingPoolCollateralManager(lendingPoolCollateralManager.address);
-  //await lendingPoolAddressesProvider.setPriceOracle(priceOracle);
+  await lendingPoolAddressesProvider.setPriceOracle(priceOracle.address);
   await lendingPoolAddressesProvider.setLendingRateOracle(lendingRateOracle.address);
   await lendingPoolConfigurator.initialize(lendingPoolAddressesProvider.address);
   await lendingPoolAddressesProvider.setPoolAdmin(accounts[0].address);
@@ -122,7 +127,7 @@ async function main() {
   console.log("treasury      deployed to: ", treasury.address);
 
   const BridgeFeeController = await hre.ethers.getContractFactory("BridgeFeeController");
-  const bridgeFeeController = await(await BridgeFeeController.deploy(priceOracle,treasury.address)).deployed();
+  const bridgeFeeController = await(await BridgeFeeController.deploy(priceOracle.address,treasury.address)).deployed();
   json.userProxyFactory = bridgeFeeController.address
   console.log("bridgeFeeController      deployed to: ", bridgeFeeController.address);
   const VTokenFactory = await hre.ethers.getContractFactory("VTokenFactory");
@@ -131,7 +136,7 @@ async function main() {
   console.log("vTokenFactory      deployed to: ", vTokenFactory.address);
 
   const NetworkFeeController = await hre.ethers.getContractFactory("NetworkFeeController");
-  const networkFeeController = await(await NetworkFeeController.deploy(priceOracle,treasury.address,maticETH)).deployed();
+  const networkFeeController = await(await NetworkFeeController.deploy(priceOracle.address,treasury.address,maticETH)).deployed();
   json.networkFeeController = networkFeeController.address
   console.log("networkFeeController      deployed to: ", networkFeeController.address);
 
@@ -150,6 +155,14 @@ async function main() {
   await vTokenFactory.createVToken(usdt,PUSDT,"VUSDT","VUSDT",6);
   await vTokenFactory.createVToken(usdc,PUSDC,"VUSDC","VUSDC",6);
   console.log("four created ");
+
+  const owners = ["0x3749f569fbE231056392c408323446A4795093E7","0xDF70AC60b838BD75131663aC768d364F6938B824","0xA192E61f9475D0Da5BBD242E666029b690F40427"];
+  const GnosisSafe = await hre.ethers.getContractFactory("GnosisSafe");
+  const gnosisSafe = await(await GnosisSafe.deploy(owners,2)).deployed();
+  json.gnosisSafe = gnosisSafe.address
+  console.log("gnosisSafe      deployed to: ", gnosisSafe.address);
+
+  bridgeControl.transferOwnership(gnosisSafe.address);
 
  
   const Distribution = await hre.ethers.getContractFactory("Distribution");
@@ -336,12 +349,8 @@ async function main() {
   console.log("USDCtokenAggregator      deployed to: ", USDCtokenAggregator.address);
   await USDCtokenAggregator.submit("818787760000000");
 
-  const ChainlinkProxyPriceProvider = await hre.ethers.getContractFactory("ChainlinkProxyPriceProvider");
-  const chainlinkProxyPriceProvider = await (await ChainlinkProxyPriceProvider.deploy([VWBTC, VUSDT,VUSDC], [WBTCtokenAggregator.address, USDTtokenAggregator.address, USDCtokenAggregator.address], ZEROAddress, VWETH)).deployed();
-
-  console.log("priceOracle      deployed to: ", USDCtokenAggregator.address);
-  await lendingPoolAddressesProvider.setPriceOracle(chainlinkProxyPriceProvider.address);
-  console.log("lendingPoolAddressesProvider      setPriceOracle");
+  priceOracle.setAssetSources([VWBTC, VUSDT,VUSDC], [WBTCtokenAggregator.address, USDTtokenAggregator.address, USDCtokenAggregator.address])
+  console.log("priceOracle      setAssetSources ");
 
    
 
