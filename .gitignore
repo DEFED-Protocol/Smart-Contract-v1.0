@@ -1,0 +1,21 @@
+node_modules/
+# build/
+npm-debug.log
+yarn-error.log
+.DS_Store
+.env
+.deps
+.openzeppelin
+verify/
+*.keystore
+!debug.keystore
+package-lock.json
+
+.vscode/
+bin/
+build/
+cache/
+artifacts/
+
+compiler_config.json
+remix-compiler.config.js
