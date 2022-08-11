@@ -56,7 +56,7 @@ contract Distribution is Ownable {
 	function distribute(address[] memory aTokens) public  onlyOwner {//鉴权
 		for(uint256 i=0; i<aTokens.length; i++){
 			uint256 aTokenBalance = IAToken(aTokens[i]).balanceOf(address(this));
-			address vToken =  IAToken(aTokens[i]).RESERVE_TREASURY_ADDRESS();
+			address vToken =  IAToken(aTokens[i]).UNDERLYING_ASSET_ADDRESS();
 			require(vToken != address(0), "unknow token");
 			ILendingPool(lendingPOOL).withdraw(vToken,aTokenBalance,address(this));
 			uint256 vTokenBalance = IERC20(vToken).balanceOf(address(this));
