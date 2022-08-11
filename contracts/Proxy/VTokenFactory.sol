@@ -9,7 +9,7 @@ contract VTokenFactory is IVTokenFactory, Ownable {
     mapping(address => address) public override getVToken;
     address public override bridgeControl;
 
-    function createVToken(address token, address PToken,string memory tokenName,string memory tokenSymbol,uint8 tokenDecimals) public onlyOwner override returns (address vToken) {//TODO 是否需要鉴权
+    function createVToken(address token, address PToken,string memory tokenName,string memory tokenSymbol,uint8 tokenDecimals) public onlyOwner override returns (address vToken) {
         require(bridgeControl != address(0), "error");
         require(token != address(0), 'ZERO_ADDRESS');
         require(getVToken[token] == address(0), 'VTOKEN_EXISTS');

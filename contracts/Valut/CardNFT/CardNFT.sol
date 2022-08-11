@@ -19,7 +19,6 @@ contract CardNFT is ERC721Enumerable, Ownable {
    
     mapping(uint256 => string) private _tokenURIs;
    
-    // 构造器
     constructor(string memory name,string memory symbol,string memory initBaseURI, string memory initNotRevealedUri)
         ERC721(name, symbol)
     {
