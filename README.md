@@ -15,4 +15,4 @@ add config params
 1. npm install 
 2. npx hardhat run scripts/deploy_eth.js --network rinkeby
 
-2. npx hardhat run scripts/deploy_polygon.js --network mumbai
+3. npx hardhat run scripts/deploy_polygon.js --network mumbai
