@@ -2,10 +2,7 @@
 pragma solidity 0.8.0;
 pragma experimental ABIEncoderV2;
 
-
-
 interface ILendingPool {
-
     function deposit(
         address asset,
         uint256 amount,
@@ -34,7 +31,6 @@ interface ILendingPool {
         address onBehalfOf
     ) external returns (uint256);
 
-   
     function liquidationCall(
         address collateralAsset,
         address debtAsset,
@@ -45,7 +41,21 @@ interface ILendingPool {
 
     function getReservesList() external view returns (address[] memory);
 
-    function getReserveData(address asset) external view returns (uint256,uint128,uint128,uint128,uint128,uint128,uint40,address,address,address,address,uint8);
-
-
+    function getReserveData(address asset)
+        external
+        view
+        returns (
+            uint256,
+            uint128,
+            uint128,
+            uint128,
+            uint128,
+            uint128,
+            uint40,
+            address,
+            address,
+            address,
+            address,
+            uint8
+        );
 }
