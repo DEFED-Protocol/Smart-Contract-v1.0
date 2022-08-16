@@ -26,7 +26,7 @@ contract TokenController {
     mapping(address => Params) addressParams;
 
 	event BorrowToEthereum(address asset,uint256 value,address toEthAdr);
-    
+
 	event Borrow(address asset,uint256 value,address toEthAdr);
 
 	event Repay(address asset,uint256 value,uint256 rateMode);
@@ -58,12 +58,12 @@ contract TokenController {
 		address vToken = IVTokenFactory(params.vTokenFactory).getVToken(asset);
         address ethUser = IUserProxy(address(this)).owner();
         require(vToken != address(0), "unknow token");
+        ILendingPool(params.lendingPool).withdraw(vToken,amount,params.bridgeControl);
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
         if(fee > 0){
             IERC20(vToken).transfer(networkFeeVault,fee);
         }
         uint256 targetAmount = amount-fee;
-		ILendingPool(params.lendingPool).withdraw(vToken,targetAmount,params.bridgeControl);
 		IBridgeControl(params.bridgeControl).transferToEthereum(vToken, address(this), targetAmount);
         emit WithdrawToEthereum(asset, amount, ethUser);
 
@@ -92,13 +92,13 @@ contract TokenController {
 		address vToken = IVTokenFactory(params.vTokenFactory).getVToken(asset);
         require(vToken != address(0), "unknow token");
         address ethUser = IUserProxy(address(this)).owner();
+        ILendingPool(params.lendingPool).borrow(vToken,amount,interestRateMode,referralCode,address(this));
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
         if(fee > 0){
             IERC20(vToken).transfer(networkFeeVault,fee);
         }
         uint256 targetAmount = amount-fee;
         IERC20(vToken).approve(params.lendingPool,targetAmount);
-		ILendingPool(params.lendingPool).borrow(vToken,targetAmount,interestRateMode,referralCode,address(this));
 		ILendingPool(params.lendingPool).deposit(vToken,targetAmount,address(this),referralCode);
         emit Borrow(asset,amount,ethUser);
 	}
@@ -201,7 +201,7 @@ contract TokenController {
 		if(balanceAfterRepay != 0){
 			ILendingPool(params.lendingPool).deposit(vToken,balanceAfterRepay,address(this),0);
 		}
-        emit Repay( asset, amount, rateMode);
+        emit Repay(asset, amount, rateMode);
 	}
 
     function getParams() external view returns (Params memory){
