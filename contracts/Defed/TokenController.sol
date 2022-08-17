@@ -23,7 +23,7 @@ contract TokenController {
     address  proxyFactory;
     address  networkFeeController;
     }
-    mapping(address => Params) addressParams;
+    mapping(address => Params) public addressParams;
 
 	event BorrowToEthereum(address asset,uint256 value,address toEthAdr);
 
@@ -64,7 +64,7 @@ contract TokenController {
             IERC20(vToken).transfer(networkFeeVault,fee);
         }
         uint256 targetAmount = amount-fee;
-		IBridgeControl(params.bridgeControl).transferToEthereum(vToken, address(this), targetAmount);
+		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, address(this), targetAmount,1);
         emit WithdrawToEthereum(asset, amount, ethUser);
 
 	}
@@ -82,7 +82,7 @@ contract TokenController {
         }
         uint256 targetAmount = amount-fee;
         IERC20(vToken).transfer(params.bridgeControl,targetAmount);
-		IBridgeControl(params.bridgeControl).transferToEthereum(vToken, address(this), targetAmount);
+		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, address(this), targetAmount,2);
         emit BorrowToEthereum(asset, amount, ethUser);
 	}
 
@@ -138,7 +138,7 @@ contract TokenController {
             IERC20(vToken).transfer(networkFeeVault,fee);
         }
         uint256 targetAmount = amount-fee;
-		IBridgeControl(params.bridgeControl).transferToEthereum(vToken, proxyAddr, targetAmount);
+		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, proxyAddr, targetAmount,3);
         emit TransferToEthereum(asset, amount, to);
     }
     function transferCredit(address tokenController,address asset, uint256 amount,address to,uint256 interestRateMode,uint16 referralCode) public {
@@ -180,7 +180,7 @@ contract TokenController {
         }
         uint256 targetAmount = amount-fee;
 		IERC20(vToken).transfer(params.bridgeControl,targetAmount);
-		IBridgeControl(params.bridgeControl).transferToEthereum(vToken, proxyAddr, targetAmount);
+		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, proxyAddr, targetAmount,4);
         emit TransferCreditToEthereum( asset, amount,to, interestRateMode, referralCode);
 	}
 
