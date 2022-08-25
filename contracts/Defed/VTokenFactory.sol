@@ -11,7 +11,6 @@ contract VTokenFactory is IVTokenFactory, Ownable {
 
     function createVToken(
         address token,
-        address PToken,
         string memory tokenName,
         string memory tokenSymbol,
         uint8 tokenDecimals
@@ -26,7 +25,6 @@ contract VTokenFactory is IVTokenFactory, Ownable {
         }
         VToken(vToken).initialize(
             token,
-            PToken,
             tokenName,
             tokenSymbol,
             tokenDecimals

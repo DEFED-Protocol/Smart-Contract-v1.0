@@ -10,7 +10,6 @@ interface IVTokenFactory {
 
     function createVToken(
         address token,
-        address PToken,
         string memory tokenName,
         string memory tokenSymbol,
         uint8 tokenDecimals
