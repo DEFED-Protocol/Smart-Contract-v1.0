@@ -7,11 +7,9 @@ import "./interfaces/IERC20.sol";
 import "./interfaces/IVToken.sol";
 import "./interfaces/IVTokenFactory.sol";
 import "./interfaces/IFlashSwapCallee.sol";
-
 contract VToken is IVToken, Context, IERC20 {
     address public factory;
     address public override ETHToken;
-    address public PToken;
     using Address for address;
 
     mapping(address => uint256) private _balances;
@@ -32,14 +30,12 @@ contract VToken is IVToken, Context, IERC20 {
 
     function initialize(
         address token,
-        address _PToken,
         string memory tokenName,
         string memory tokenSymbol,
         uint8 tokenDecimals
     ) external override {
         require(msg.sender == factory, "FORBIDDEN");
         ETHToken = token;
-        PToken = _PToken;
         _name = tokenName;
         _symbol = tokenSymbol;
         _decimals = tokenDecimals;
@@ -70,15 +66,6 @@ contract VToken is IVToken, Context, IERC20 {
         );
     }
 
-    function flashSwap(address to, bytes calldata data) external override lock {
-        uint256 balance0 = IERC20(PToken).balanceOf(address(this));
-        _mint(to, balance0);
-        IFlashSwapCallee(to).flashSwapCall(msg.sender, balance0, data);
-        uint256 balance1 = IERC20(address(this)).balanceOf(address(this));
-        _burn(address(this), balance1);
-        _safeTransfer(PToken, msg.sender, balance0);
-        require(balance1 >= balance0, "error");
-    }
 
     function mint(address spender, uint256 amount) external override {
         require(

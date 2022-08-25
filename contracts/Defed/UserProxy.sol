@@ -70,6 +70,9 @@ contract UserProxy is IUserProxy {
         execute(to, value, data, operation);
     }
 
+    receive() external payable{}
+    fallback() external payable {}
+
     function execTransaction(
         address to,
         uint256 value,
