@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IVToken.sol";
 import "./interfaces/IVTokenFactory.sol";
-import "./interfaces/IFlashSwapCallee.sol";
 contract VToken is IVToken, Context, IERC20 {
     address public factory;
     address public override ETHToken;

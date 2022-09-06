@@ -113,25 +113,25 @@ contract AssetManagement is Ownable {
 
     function withdraw(bytes32 transactionId,address token,address to, uint256 amount,string memory action) public onlyOwner{
         require(!transactions[transactionId],"repeat transactionId ");
-        IERC20(token).transfer(to,amount);
         transactions[transactionId] = true;
+        IERC20(token).transfer(to,amount);
         emit Widthdraw(to,token,amount,action,transactionId);
 
     }
 
     function withdrawETH(bytes32 transactionId,address to, uint256 amount,string memory action) public onlyOwner {
         require(!transactions[transactionId],"repeat transactionId ");
+        transactions[transactionId] = true;
         IWETH(WETH).withdraw(amount);
         _safeTransferETH(to, amount);
-        transactions[transactionId] = true;
         emit WidthdrawETH(to,amount,action,transactionId);
 
     }
 
     function activeToken(address token) external  onlyOwner{
         require(!activeTokens[token], 'AddToken: token already supported');
-        contracts.push(token);
         activeTokens[token] = true;   
+        contracts.push(token);
         emit ActiveToken(token);
     }
 
