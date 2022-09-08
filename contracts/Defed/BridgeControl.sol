@@ -9,7 +9,6 @@ import './interfaces/IVToken.sol';
 import './interfaces/ILendingPool.sol';
 import './interfaces/IERC20.sol';
 import './interfaces/IBridgeFeeController.sol';
-import './interfaces/IIncentivesController.sol';
 
 interface IVeDEFE {
     struct LockedBalance {

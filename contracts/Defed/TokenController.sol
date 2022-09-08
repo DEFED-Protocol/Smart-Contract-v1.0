@@ -11,8 +11,6 @@ import './interfaces/IERC20.sol';
 import './interfaces/IBridgeControl.sol';
 import './interfaces/ITokenController.sol';
 import './interfaces/INetworkFeeController.sol';
-import './interfaces/IIncentivesController.sol';
-
 
 contract TokenController {
 
@@ -58,12 +56,13 @@ contract TokenController {
 		address vToken = IVTokenFactory(params.vTokenFactory).getVToken(asset);
         address ethUser = IUserProxy(address(this)).owner();
         require(vToken != address(0), "unknow token");
-        ILendingPool(params.lendingPool).withdraw(vToken,amount,params.bridgeControl);
+        ILendingPool(params.lendingPool).withdraw(vToken,amount,address(this));
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
         if(fee > 0){
             IERC20(vToken).transfer(networkFeeVault,fee);
         }
         uint256 targetAmount = amount-fee;
+        IERC20(vToken).transfer(params.bridgeControl,targetAmount);
 		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, address(this), targetAmount,1);
         emit WithdrawToEthereum(asset, amount, ethUser);
 
