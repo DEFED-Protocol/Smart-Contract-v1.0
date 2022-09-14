@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 
 
 import './libraries/Ownable.sol';
@@ -9,7 +9,7 @@ import './interfaces/IPriceOracleGetter.sol';
 import './interfaces/IBridgeFeeController.sol';
 
 contract BridgeFeeController is IBridgeFeeController, Ownable {
-    using SafeMath for uint;
+    using SafeMath for uint256;
 
     address public bridgeFeeVault;
     address public priceOracleGetter;

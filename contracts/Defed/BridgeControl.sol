@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
-import "@openzeppelin/contracts/access/Ownable.sol";
+
 import './interfaces/IUserProxy.sol';
 import './interfaces/IUserProxyFactory.sol';
 import './interfaces/IVTokenFactory.sol';
 import './interfaces/IVToken.sol';
 import './interfaces/ILendingPool.sol';
-import './interfaces/IERC20.sol';
+import './libraries/Ownable.sol';
 import './interfaces/IBridgeFeeController.sol';
+import './interfaces/IIncentivesController.sol';
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IVeDEFE {
     struct LockedBalance {
@@ -27,6 +30,7 @@ interface IVeDEFE {
 
 contract BridgeControl is Ownable{
 
+    using SafeERC20 for IERC20;
     address public proxyFactory;
     address public vTokenFactory;
     address public lendingPool;
@@ -40,7 +44,12 @@ contract BridgeControl is Ownable{
     event TransferFromEthereumForDeposit(address indexed fromEthAdr, address indexed fromProxyAdr, address token, address vToken, uint256 value,bytes32 transactionId);
     event TransferFromEthereumForRepay(address indexed fromEthAdr, address indexed fromProxyAdr, address token, address vToken, uint256 value,bytes32 transactionId);
     event lockFromEthereumLog(address indexed fromEthAdr, address indexed fromProxyAdr, address virtualDefedToken, uint256 value, uint256 time,bytes32 transactionId);
+    event BridgeFeeLog(address indexed fromUserProxy,address token,uint256 fee);
     constructor(address _proxyFactory, address _vTokenFactory,address _lendingPool,address _bridgeFeeController) {
+        require(_proxyFactory != address(0));
+        require(_vTokenFactory != address(0));
+        require(_lendingPool != address(0));
+        require(_bridgeFeeController != address(0));
         proxyFactory = _proxyFactory;
         vTokenFactory = _vTokenFactory;
         lendingPool = _lendingPool;
@@ -48,8 +57,14 @@ contract BridgeControl is Ownable{
     }
 
     function setVirtualDefedToken(address _virtualDefedToken,address _veDEFE) external onlyOwner{
+        require(_virtualDefedToken != address(0));
+        require(_veDEFE != address(0));
         virtualDefedToken = _virtualDefedToken;
         veDEFE = _veDEFE;
+    }
+
+    function turnOutToken(address token, uint256 amount) public onlyOwner{
+        IERC20(token).safeTransfer(msg.sender, amount);
     }
 
 
@@ -63,10 +78,11 @@ contract BridgeControl is Ownable{
         require(token != address(0), "unknow token");
         (uint256 fee,address bridgeFeeVault) = IBridgeFeeController(bridgeFeeController).getBridgeFee(vToken,amount);
         if(fee > 0){
-            IERC20(vToken).transfer(bridgeFeeVault,fee);
+            IERC20(vToken).safeTransfer(bridgeFeeVault,fee);
+            emit BridgeFeeLog(from,vToken,fee);
         }
         uint256 targetAmount = amount - fee;
-		IERC20(vToken).burn(address(this), targetAmount);
+		IVToken(vToken).burn(address(this), targetAmount);
         emit TransferToEthereum(fromEthAddr,toEthAddr, to, token, vToken, targetAmount,action);
 	}
 
@@ -80,7 +96,7 @@ contract BridgeControl is Ownable{
         if (proxyAddr == address(0)) {
             proxyAddr = IUserProxyFactory(proxyFactory).createProxy(to);
         }
-		IERC20(vToken).mint(address(this), amount);
+		IVToken(vToken).mint(address(this), amount);
         IERC20(vToken).approve(lendingPool,amount);
         ILendingPool(lendingPool).deposit(vToken,amount,proxyAddr,0);
         emit TransferFromEthereumForDeposit(to, proxyAddr, token, vToken, amount,transactionId);
@@ -96,7 +112,7 @@ contract BridgeControl is Ownable{
         if (proxyAddr == address(0)) {
             proxyAddr = IUserProxyFactory(proxyFactory).createProxy(to);
         }
-		IERC20(vToken).mint(address(this),amount);
+		IVToken(vToken).mint(address(this),amount);
         IERC20(vToken).approve(lendingPool,amount);
         ILendingPool(lendingPool).repay(vToken, amount,rateMode,proxyAddr);
         uint256 balanceAfterRepay = IERC20(vToken).balanceOf(address(this));
@@ -115,7 +131,7 @@ contract BridgeControl is Ownable{
         if (proxyAddr == address(0)) {
             proxyAddr = IUserProxyFactory(proxyFactory).createProxy(to);
         }
-		IERC20(vToken).mint(proxyAddr, amount);
+		IVToken(vToken).mint(proxyAddr, amount);
         emit TransferFromEthereum(to, proxyAddr, token, vToken, amount,transactionId);
 	}
 

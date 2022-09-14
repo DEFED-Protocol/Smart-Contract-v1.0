@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/StorageSlot.sol";
 import "./interfaces/IUserProxy.sol";
+import "./libraries/ECDSA.sol";
+import "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 contract UserProxy is IUserProxy {
     mapping(uint256 => bool) public nonces;
@@ -70,7 +70,8 @@ contract UserProxy is IUserProxy {
         execute(to, value, data, operation);
     }
 
-    receive() external payable{}
+    receive() external payable {}
+
     fallback() external payable {}
 
     function execTransaction(

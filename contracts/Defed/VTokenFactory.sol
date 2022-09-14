@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IVTokenFactory.sol";
 import "./VToken.sol";
+import "./libraries/Ownable.sol";
 
 contract VTokenFactory is IVTokenFactory, Ownable {
     mapping(address => address) public override getVToken;
@@ -23,13 +23,8 @@ contract VTokenFactory is IVTokenFactory, Ownable {
         assembly {
             vToken := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        VToken(vToken).initialize(
-            token,
-            tokenName,
-            tokenSymbol,
-            tokenDecimals
-        );
         getVToken[token] = vToken;
+        VToken(vToken).initialize(token, tokenName, tokenSymbol, tokenDecimals);
         emit VTokenCreated(token, vToken);
     }
 
@@ -38,6 +33,7 @@ contract VTokenFactory is IVTokenFactory, Ownable {
         override
         onlyOwner
     {
+        require(_bridgeControl != address(0));
         bridgeControl = _bridgeControl;
     }
 

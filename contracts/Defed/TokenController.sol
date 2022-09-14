@@ -1,19 +1,22 @@
 
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import './interfaces/IUserProxyFactory.sol';
 import './interfaces/IUserProxy.sol';
 import './interfaces/IVTokenFactory.sol';
 import './interfaces/ILendingPool.sol';
-import './interfaces/IERC20.sol';
 import './interfaces/IBridgeControl.sol';
 import './interfaces/ITokenController.sol';
 import './interfaces/INetworkFeeController.sol';
+import './interfaces/IIncentivesController.sol';
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract TokenController {
 
+    using SafeERC20 for IERC20;
     struct Params {
     address  lendingPool;
     address  bridgeControl;
@@ -39,9 +42,10 @@ contract TokenController {
 
 	event TransferCreditToEthereum(address asset,uint256 value,address toEthAdr,uint256 interestRateMode,uint16 referralCode);
 
+    event NetworkFeeLog(address fromUserProxy,address token,uint256 fee,uint256 action);
+
 
     
-
     constructor(address _lendingPOOL, address _bridgeControl, address _vTokenFactory,address _proxyFactory,address _networkFeeController) {
         address tokenController = address(this);
         addressParams[tokenController].lendingPool = _lendingPOOL;
@@ -59,12 +63,13 @@ contract TokenController {
         ILendingPool(params.lendingPool).withdraw(vToken,amount,address(this));
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
         if(fee > 0){
-            IERC20(vToken).transfer(networkFeeVault,fee);
+            IERC20(vToken).safeTransfer(networkFeeVault,fee);
+            emit NetworkFeeLog(address(this),vToken,fee,1);
         }
         uint256 targetAmount = amount-fee;
-        IERC20(vToken).transfer(params.bridgeControl,targetAmount);
+        IERC20(vToken).safeTransfer(params.bridgeControl,targetAmount);
 		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, address(this), targetAmount,1);
-        emit WithdrawToEthereum(asset, amount, ethUser);
+        emit WithdrawToEthereum(asset, targetAmount, ethUser);
 
 	}
 
@@ -77,12 +82,13 @@ contract TokenController {
 		ILendingPool(params.lendingPool).borrow(vToken, amount, interestRateMode, referralCode, address(this));
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
         if(fee > 0){
-            IERC20(vToken).transfer(networkFeeVault,fee);
+            IERC20(vToken).safeTransfer(networkFeeVault,fee);
+             emit NetworkFeeLog(address(this),vToken,fee,2);
         }
         uint256 targetAmount = amount-fee;
-        IERC20(vToken).transfer(params.bridgeControl,targetAmount);
+        IERC20(vToken).safeTransfer(params.bridgeControl,targetAmount);
 		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, address(this), targetAmount,2);
-        emit BorrowToEthereum(asset, amount, ethUser);
+        emit BorrowToEthereum(asset, targetAmount, ethUser);
 	}
 
     function borrow(address tokenController,address asset, uint256 amount,uint256 interestRateMode,uint16 referralCode) public {
@@ -94,12 +100,13 @@ contract TokenController {
         ILendingPool(params.lendingPool).borrow(vToken,amount,interestRateMode,referralCode,address(this));
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
         if(fee > 0){
-            IERC20(vToken).transfer(networkFeeVault,fee);
+            IERC20(vToken).safeTransfer(networkFeeVault,fee);
+            emit NetworkFeeLog(address(this),vToken,fee,3);
         }
         uint256 targetAmount = amount-fee;
         IERC20(vToken).approve(params.lendingPool,targetAmount);
 		ILendingPool(params.lendingPool).deposit(vToken,targetAmount,address(this),referralCode);
-        emit Borrow(asset,amount,ethUser);
+        emit Borrow(asset,targetAmount,ethUser);
 	}
 
     function transfer(address tokenController,address asset, uint256 amount,address to) public {
@@ -115,11 +122,12 @@ contract TokenController {
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
          if(fee > 0){
             ILendingPool(params.lendingPool).withdraw(vToken,fee,networkFeeVault);
+            emit NetworkFeeLog(address(this),vToken,fee,4);
         }
         uint256 targetAmount = amount-fee;
         ( , , , , , , ,address aToken, , , , ) = ILendingPool(params.lendingPool).getReserveData(vToken);
-		IERC20(aToken).transfer(proxyAddr,targetAmount);
-        emit Transfer(asset, amount, to);
+		IERC20(aToken).safeTransfer(proxyAddr,targetAmount);
+        emit Transfer(asset, targetAmount, to);
 	}
     function transferToEthereum(address tokenController,address asset, uint256 amount,address to) public {
         bytes4 method = bytes4(keccak256("transferToEthereum(address,address,uint256,address)"));
@@ -131,14 +139,16 @@ contract TokenController {
             proxyAddr = IUserProxyFactory(params.proxyFactory).createProxy(to);
         }
         address ethUser = IUserProxy(address(this)).owner();
-		ILendingPool(params.lendingPool).withdraw(vToken,amount,params.bridgeControl);
+		ILendingPool(params.lendingPool).withdraw(vToken,amount,address(this));
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
         if(fee > 0){
-            IERC20(vToken).transfer(networkFeeVault,fee);
+            IERC20(vToken).safeTransfer(networkFeeVault,fee);
+            emit NetworkFeeLog(address(this),vToken,fee,5);
         }
         uint256 targetAmount = amount-fee;
+        IERC20(vToken).safeTransfer(params.bridgeControl,targetAmount);
 		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, proxyAddr, targetAmount,3);
-        emit TransferToEthereum(asset, amount, to);
+        emit TransferToEthereum(asset, targetAmount, to);
     }
     function transferCredit(address tokenController,address asset, uint256 amount,address to,uint256 interestRateMode,uint16 referralCode) public {
         bytes4 method = bytes4(keccak256("transferCredit(address,address,uint256,address,uint256,uint16)"));
@@ -153,12 +163,13 @@ contract TokenController {
 		ILendingPool(params.lendingPool).borrow(vToken,amount,interestRateMode,referralCode,address(this));
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
          if(fee > 0){
-            IERC20(vToken).transfer(networkFeeVault,fee);
+            IERC20(vToken).safeTransfer(networkFeeVault,fee);
+            emit NetworkFeeLog(address(this),vToken,fee,6);
         }
         uint256 targetAmount = amount-fee;
         IERC20(vToken).approve(params.lendingPool,targetAmount);
 		ILendingPool(params.lendingPool).deposit(vToken,targetAmount,proxyAddr,referralCode);
-        emit TransferCredit( asset, amount, to, interestRateMode, referralCode);
+        emit TransferCredit( asset, targetAmount, to, interestRateMode, referralCode);
 	}
 
 
@@ -175,12 +186,13 @@ contract TokenController {
 		ILendingPool(params.lendingPool).borrow(vToken,amount,interestRateMode,referralCode,address(this));
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
          if(fee > 0){
-            IERC20(vToken).transfer(networkFeeVault,fee);
+            IERC20(vToken).safeTransfer(networkFeeVault,fee);
+            emit NetworkFeeLog(address(this),vToken,fee,7);
         }
         uint256 targetAmount = amount-fee;
-		IERC20(vToken).transfer(params.bridgeControl,targetAmount);
+		IERC20(vToken).safeTransfer(params.bridgeControl,targetAmount);
 		IBridgeControl(params.bridgeControl).transferToEthereum(address(this),vToken, proxyAddr, targetAmount,4);
-        emit TransferCreditToEthereum( asset, amount,to, interestRateMode, referralCode);
+        emit TransferCreditToEthereum( asset, targetAmount,to, interestRateMode, referralCode);
 	}
 
     function repay(address tokenController,address asset, uint256 amount,uint256 rateMode) public {
@@ -192,7 +204,8 @@ contract TokenController {
          address ethUser = IUserProxy(address(this)).owner();
         (uint256 fee,address networkFeeVault) =INetworkFeeController(params.networkFeeController).getNetworkFee(ethUser,method,vToken,amount);
         if(fee > 0){
-            IERC20(vToken).transfer(networkFeeVault,fee);
+            IERC20(vToken).safeTransfer(networkFeeVault,fee);
+            emit NetworkFeeLog(address(this),vToken,fee,8);
         }
         uint256 targetAmount = amount-fee;
 		ILendingPool(params.lendingPool).repay(vToken, targetAmount,rateMode,address(this));
@@ -200,7 +213,7 @@ contract TokenController {
 		if(balanceAfterRepay != 0){
 			ILendingPool(params.lendingPool).deposit(vToken,balanceAfterRepay,address(this),0);
 		}
-        emit Repay(asset, amount, rateMode);
+        emit Repay(asset, targetAmount, rateMode);
 	}
 
     function getParams() external view returns (Params memory){

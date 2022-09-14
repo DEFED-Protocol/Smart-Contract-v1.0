@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IWETH {
   function deposit() external payable;
@@ -14,32 +13,17 @@ interface IWETH {
 }
 
 interface IERC721 {
-
     function mint(address to) external;
 }
 
-
-
-
-
- 
-
 contract AssetManagement is Ownable {
-
-
-
+    using SafeERC20 for IERC20;
     mapping(address => bool) public activeTokens;
     address[]  private contracts; 
-
     mapping(address => bool) public deposited;
-
     mapping(bytes32=>bool) transactions;
-
-
     address public WETH;
     address public BANKCARDNFT;
-
-
     uint256 public lastTokenId;
 
 
@@ -54,6 +38,8 @@ contract AssetManagement is Ownable {
 
 
     constructor (address _weth,address _bankCardNFT){
+        require(_weth != address(0));
+        require(_bankCardNFT != address(0));
         activeTokens[_weth] = true;
         contracts.push(_weth);
         WETH = _weth;
@@ -67,11 +53,11 @@ contract AssetManagement is Ownable {
     ) external {
         require(amount > 0, 'Deposit: amount can not be 0');
         if(!deposited[msg.sender]){
+            deposited[msg.sender] = true;
              _mintNFT(msg.sender);
-             deposited[msg.sender] = true;
         }
         require(activeTokens[token], 'Deposit: token not support');
-        IERC20(token).transferFrom(msg.sender,address(this),amount);
+        IERC20(token).safeTransferFrom(msg.sender,address(this),amount);
         emit Deposit(msg.sender, token,amount);
     }
 
@@ -81,19 +67,19 @@ contract AssetManagement is Ownable {
     ) external {
         require(amount > 0, 'DepositForRepay: amount can not be 0');
         if(!deposited[msg.sender]){
+            deposited[msg.sender] = true;
              _mintNFT(msg.sender);
-             deposited[msg.sender] = true;
         }
         require(activeTokens[token], 'DepositForRepay: token not support');
-        IERC20(token).transferFrom(msg.sender,address(this),amount);
+        IERC20(token).safeTransferFrom(msg.sender,address(this),amount);
         emit DepositForRepay(msg.sender,token,amount);
     }
 
     function depositETHForRepay() external payable {
         require(msg.value > 0, 'DepositETHForRepay: amount  zero');
         if(!deposited[msg.sender]){
+            deposited[msg.sender] = true;
              _mintNFT(msg.sender);
-             deposited[msg.sender] = true;
         }
         IWETH(WETH).deposit{value: msg.value}();
         emit DepositForRepay(msg.sender,WETH,msg.value);
@@ -102,19 +88,17 @@ contract AssetManagement is Ownable {
      function depositETH() external payable {
         require(msg.value > 0, 'DepositETH: amount  zero');
         if(!deposited[msg.sender]){
+            deposited[msg.sender] = true;
              _mintNFT(msg.sender);
-             deposited[msg.sender] = true;
         }
         IWETH(WETH).deposit{value: msg.value}();
         emit Deposit(msg.sender,WETH,msg.value);
     }
 
- 
-
     function withdraw(bytes32 transactionId,address token,address to, uint256 amount,string memory action) public onlyOwner{
         require(!transactions[transactionId],"repeat transactionId ");
         transactions[transactionId] = true;
-        IERC20(token).transfer(to,amount);
+        IERC20(token).safeTransfer(to,amount);
         emit Widthdraw(to,token,amount,action,transactionId);
 
     }
@@ -130,8 +114,8 @@ contract AssetManagement is Ownable {
 
     function activeToken(address token) external  onlyOwner{
         require(!activeTokens[token], 'AddToken: token already supported');
-        activeTokens[token] = true;   
         contracts.push(token);
+        activeTokens[token] = true;   
         emit ActiveToken(token);
     }
 

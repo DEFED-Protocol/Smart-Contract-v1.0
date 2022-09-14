@@ -1,5 +1,6 @@
+
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import './libraries/Ownable.sol';
@@ -10,7 +11,7 @@ import './interfaces/IERC20.sol';
 import './interfaces/IAggregator.sol';
 
 contract NetworkFeeController is INetworkFeeController, Ownable {
-    using SafeMath for uint;
+    using SafeMath for uint256;
 
     struct NetworkFee {
         uint256 gasUsed;
@@ -24,7 +25,7 @@ contract NetworkFeeController is INetworkFeeController, Ownable {
     address public priceOracleGetter;
     address public maticEthAggregator;
 
-    constructor(address _priceOracleGetter, address _networkFeeVault,address _maticEthAggregator)  public{
+    constructor(address _priceOracleGetter, address _networkFeeVault,address _maticEthAggregator){
         priceOracleGetter = _priceOracleGetter;
         networkFeeVault = _networkFeeVault;
         maticEthAggregator =_maticEthAggregator;
@@ -42,7 +43,7 @@ contract NetworkFeeController is INetworkFeeController, Ownable {
     function getNetworkFee(address sender, bytes4 method, address asset, uint256 amount) external override view returns (uint256,address) {
         NetworkFee memory methodNetworkFee = methodNetworkFees[method];
         if (methodNetworkFee.fee == 0) {
-            return (0, networkFeeVault);
+            return (0, networkFeeVault);d
         }
         if (methodNetworkFee.callback != address(0)) {
             return INetworkFeeController(methodNetworkFee.callback).getNetworkFee(sender, method, asset, amount);
