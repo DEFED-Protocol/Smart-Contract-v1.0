@@ -15,7 +15,7 @@ contract VTokenFactory is IVTokenFactory, Ownable {
         string memory tokenSymbol,
         uint8 tokenDecimals
     ) public override onlyOwner returns (address vToken) {
-        require(bridgeControl != address(0), "error");
+        require(bridgeControl != address(0), "ZERO_ADDRESS");
         require(token != address(0), "ZERO_ADDRESS");
         require(getVToken[token] == address(0), "VTOKEN_EXISTS");
         bytes memory bytecode = creationCode();
