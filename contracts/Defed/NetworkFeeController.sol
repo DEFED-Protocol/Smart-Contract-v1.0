@@ -43,7 +43,7 @@ contract NetworkFeeController is INetworkFeeController, Ownable {
     function getNetworkFee(address sender, bytes4 method, address asset, uint256 amount) external override view returns (uint256,address) {
         NetworkFee memory methodNetworkFee = methodNetworkFees[method];
         if (methodNetworkFee.fee == 0) {
-            return (0, networkFeeVault);d
+            return (0, networkFeeVault);
         }
         if (methodNetworkFee.callback != address(0)) {
             return INetworkFeeController(methodNetworkFee.callback).getNetworkFee(sender, method, asset, amount);
